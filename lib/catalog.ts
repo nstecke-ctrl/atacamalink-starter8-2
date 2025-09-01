@@ -1,13 +1,12 @@
 // lib/catalog.ts
-// Helpers de catálogo SIN usar node:fs ni node:path y con exports usados por tus páginas.
 
 export type Product = {
   id?: string;
   name: string;
-  brand?: string;          // "hanwha", "motorola", "hytera", etc.
+  brand?: string;
   model?: string;
   description?: string;
-  categories?: string[];   // ej: ["camera","lpr"] o ["vhf","uhf"]
+  categories?: string[];
   category?: string;
   slug?: string;
   image?: string;
@@ -15,7 +14,6 @@ export type Product = {
   [key: string]: any;
 };
 
-// ---------- util ----------
 export const ensureSlug = (s?: string | null): string =>
   (s ?? "")
     .toString()
@@ -25,11 +23,10 @@ export const ensureSlug = (s?: string | null): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-// ---------- carga catálogo (sin fs) ----------
+// --- Carga catálogo SIN Node APIs ---
 let ALL_PRODUCTS: Product[] = [];
 try {
-  // Importamos desde código (no /public). Next puede resolver JSON en build.
-  // Si tu TS tiene "resolveJsonModule": true, esto compila bien.
+  // Importa JSON desde código (no /public)
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const data = require("@/lib/data/products.json");
   const arr = Array.isArray(data) ? data : (data?.products || []);
@@ -38,14 +35,13 @@ try {
   ALL_PRODUCTS = [];
 }
 
-// Normalizamos slug siempre
 export const getAllProducts = (): Product[] =>
   ALL_PRODUCTS.map((p) => ({ ...p, slug: p.slug || ensureSlug(p.name || p.model || "") }));
 
 // Alias usado por tus páginas
 export const loadCatalog = (): Product[] => getAllProducts();
 
-// ---------- heurísticas por tipo ----------
+// --- Heurísticas por tipo ---
 const CAMERA_KEYS = new Set(["camera", "camaras", "cctv", "lpr", "ptz", "bullet", "dome"]);
 const RADIO_KEYS  = new Set(["radio", "vhf", "uhf", "dmr", "tetra"]);
 const RADIO_BRANDS  = new Set(["motorola", "hytera"]);
@@ -69,7 +65,7 @@ export const isRadio = (p: Product): boolean => {
   return categoriesOf(p).some((c) => RADIO_KEYS.has(c));
 };
 
-// ---------- búsquedas / filtros ----------
+// --- Búsqueda y filtros ---
 export function searchProducts(query: string, list?: Product[]): Product[] {
   const q = (query || "").trim().toLowerCase();
   if (!q) return (list || getAllProducts());
@@ -95,5 +91,3 @@ export function filterByCategory(category: string, list?: Product[], brand?: str
   if (brand) haystack = byBrand(brand, haystack);
   return haystack.filter((p) => categoriesOf(p).includes(cSlug));
 }
-Esto elimina por completo node:fs/node:path y mantiene todos los exports que tus páginas piden:
-loadCatalog, isCamera, isRadio, ensureSlug, searchProducts, byBrand, filterByCategory.
