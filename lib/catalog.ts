@@ -4,8 +4,55 @@
 // Si ya tienes tipos/funciones, puedes fusionar; si no, pega tal cual.
 // ------------------------------------------------------------------
 
-import fs from "node:fs";
-import path from "node:path";
+// lib/catalog.ts (fragmento de carga)
+
+// ...deja arriba tus tipos y helpers como ensureSlug, etc.
+
+// Carga sin Node: intentamos importar el JSON.
+// OJO: Next desaconseja importar desde /public, pero suele funcionar si el bundler lo permite.
+// Si algo falla, más abajo te dejo la alternativa "correcta" moviendo el JSON a /data.
+
+type Product = {
+  id?: string;
+  name: string;
+  brand?: string;
+  model?: string;
+  description?: string;
+  categories?: string[];
+  category?: string;
+  slug?: string;
+  image?: string;
+  price?: number;
+  [key: string]: any;
+};
+
+let ALL_PRODUCTS: Product[] = [];
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const data = require("@/public/products.json");
+  ALL_PRODUCTS = Array.isArray(data) ? data : (data?.products || []);
+} catch {
+  ALL_PRODUCTS = [];
+}
+
+// Si tienes ensureSlug, úsalo; si no, inclúyelo:
+export const ensureSlug = (s?: string | null) =>
+  (s ?? "")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+// Cache ya está en ALL_PRODUCTS; devolvemos normalizado:
+export const getAllProducts = (): Product[] =>
+  ALL_PRODUCTS.map((p) => ({ ...p, slug: p.slug || ensureSlug(p.name || p.model || "") }));
+
+// Compatibilidad con tu código:
+export const loadCatalog = (): Product[] => getAllProducts();
+
+// --- deja aquí el resto de helpers que añadimos ayer: isCamera, isRadio, searchProducts, byBrand, filterByCategory ---
 
 // TIPOS (ajusta si ya tienes tus propios tipos)
 export type Product = {
