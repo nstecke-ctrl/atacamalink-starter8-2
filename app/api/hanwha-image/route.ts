@@ -58,7 +58,7 @@ async function readOverrides(): Promise<OverrideMap> {
   } catch {
     overridesCache = {};
   }
-  return overridesCache;
+  return overridesCache ?? ({} as OverrideMap);
 }
 
 // ---- sitemaps index ----
