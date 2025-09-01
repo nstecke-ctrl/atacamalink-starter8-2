@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: process.env.COTIZACION_FROM_EMAIL || 'Cotizaciones <no-reply@resend.dev>',
       to,
-      reply_to: email || undefined,
+      replyTo: email || undefined,
       subject,
       html,
     });
