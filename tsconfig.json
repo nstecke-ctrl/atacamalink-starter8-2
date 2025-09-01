@@ -2,7 +2,10 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
-
+    "baseUrl": ".",
+    "paths": { "@/*": ["./*"] },
+    "resolveJsonModule": true,
+    "types": ["node"]
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "preserve",
