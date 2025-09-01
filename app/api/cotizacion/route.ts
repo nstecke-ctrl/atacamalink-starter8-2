@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+export const runtime = 'nodejs';
 
 type CartItem = {
   id: string;
