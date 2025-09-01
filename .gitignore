@@ -1,20 +1,23 @@
-# Node / JS
-node_modules
+cat > .gitignore <<'EOF'
+.DS_Store
+node_modules/
+.npm/
+.next/
+out/
+dist/
+build/
+.env
+.env.*
+.vercel/
+.netlify/
+coverage/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-store
-.next
-out
-dist
-build
-coverage
-.cache
-# OS
-.DS_Store
-Thumbs.db
-# Env
-.env
-.env.*
-# Misc
-*.log
+pnpm-debug.log*
+.vscode/
+.idea/
+*.swp
+EOF
+
