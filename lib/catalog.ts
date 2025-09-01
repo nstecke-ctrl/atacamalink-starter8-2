@@ -1,9 +1,11 @@
 // lib/catalog.ts
 // ------------------------------------------------------------------
 // Utilidades y helpers para trabajar con el catálogo.
-// Si ya tienes tipos o funciones existentes aquí, conserva lo tuyo
-// y añade/ajusta las exportaciones de abajo.
+// Si ya tienes tipos/funciones, puedes fusionar; si no, pega tal cual.
 // ------------------------------------------------------------------
+
+import fs from "node:fs";
+import path from "node:path";
 
 // TIPOS (ajusta si ya tienes tus propios tipos)
 export type Product = {
@@ -12,7 +14,7 @@ export type Product = {
   brand?: string;          // "hanwha", "motorola", "hytera", etc.
   model?: string;
   description?: string;
-  categories?: string[];   // ej: ["bullet","ptz","lpr"] o ["vhf","uhf"]
+  categories?: string[];   // ej: ["camera","lpr"] o ["vhf","uhf"]
   category?: string;       // si usas string en vez de array
   slug?: string;
   image?: string;
@@ -20,39 +22,82 @@ export type Product = {
   [key: string]: any;
 };
 
-// Si ya tienes una forma de cargar productos, úsala.
-// Aquí intentamos importar desde /public/products.json como fallback:
-let ALL_PRODUCTS: Product[] = [];
-try {
-  // Con paths de Next: "@/public/products.json" suele funcionar si el tsconfig tiene "paths": {"@/*":["./*"]}
-  // Si no, usa: require("../public/products.json") según tu estructura.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const data = require("@/public/products.json");
-  ALL_PRODUCTS = Array.isArray(data) ? data : (data?.products || []);
-} catch {
-  // Si falla la importación, mantenemos lista vacía para no romper build.
-  ALL_PRODUCTS = [];
+// Carga robusta de products.json desde /public (build/server-safe)
+function readProductsFromPublic(): Product[] {
+  try {
+    const filePath = path.join(process.cwd(), "public", "products.json");
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const json = JSON.parse(raw);
+    const arr = Array.isArray(json) ? json : json?.products;
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
 }
 
-// Normaliza string → slug
+// Normaliza a slug
 export const ensureSlug = (s: string | undefined | null): string => {
   if (!s) return "";
   return s
     .toString()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")   // sin tildes
+    .replace(/[\u0300-\u036f]/g, "")   // quita tildes
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 };
 
-// Devuelve todos los productos (si ya tienes una función similar, reutilízala)
+// Cache simple en build/runtime
+let _CACHE: Product[] | null = null;
+
+// Devuelve todos los productos ya normalizados
 export const getAllProducts = (): Product[] => {
-  // Si en tu proyecto ya existe otra fuente (DB, fetch, etc.), úsala aquí.
-  return ALL_PRODUCTS.map((p) => ({
-    ...p,
-    slug: p.slug || ensureSlug(p.name || p.model || ""),
-  }));
+  if (!_CACHE) {
+    const base = readProductsFromPublic();
+    _CACHE = base.map((p) => ({
+      ...p,
+      slug: p.slug || ensureSlug(p.name || p.model || ""),
+    }));
+  }
+  return _CACHE!;
+};
+
+// Para compatibilidad con tu código: alias que devuelve lo mismo.
+// (Muchos archivos lo importan como { loadCatalog } y lo llaman directo.)
+export const loadCatalog = (): Product[] => {
+  return getAllProducts();
+};
+
+// Helpers de tipo/categoría según tu estructura
+// Heurística: cámaras = marca Hanwha o categorías ["camera","camaras","cctv","lpr","ptz","bullet","dome"]
+//             radios  = marca Motorola/Hytera o categorías ["radio","vhf","uhf","dmr","tetra"]
+const CAMERA_KEYS = new Set([
+  "camera", "camaras", "cctv", "lpr", "ptz", "bullet", "dome"
+]);
+const RADIO_KEYS = new Set([
+  "radio", "vhf", "uhf", "dmr", "tetra"
+]);
+const RADIO_BRANDS = new Set(["motorola", "hytera"]);
+const CAMERA_BRANDS = new Set(["hanwha", "hanwha vision", "hanwhavision"]);
+
+function categoriesOf(p: Product): string[] {
+  if (Array.isArray(p.categories)) return p.categories.map((x) => ensureSlug(String(x)));
+  if (p.category) return [ensureSlug(String(p.category))];
+  return [];
+}
+
+export const isCamera = (p: Product): boolean => {
+  const brand = (p.brand || "").toLowerCase();
+  if (CAMERA_BRANDS.has(brand)) return true;
+  const cats = categoriesOf(p);
+  return cats.some((c) => CAMERA_KEYS.has(c));
+};
+
+export const isRadio = (p: Product): boolean => {
+  const brand = (p.brand || "").toLowerCase();
+  if (RADIO_BRANDS.has(brand)) return true;
+  const cats = categoriesOf(p);
+  return cats.some((c) => RADIO_KEYS.has(c));
 };
 
 // Buscar por texto en nombre, modelo, marca y descripción
@@ -92,8 +137,7 @@ export function filterByCategory(category: string, list?: Product[], brand?: str
   }
 
   return haystack.filter((p) => {
-    const cats = Array.isArray(p.categories) ? p.categories : (p.category ? [p.category] : []);
-    const normalized = cats.map((x) => ensureSlug(String(x)));
-    return normalized.includes(cSlug);
+    const cats = categoriesOf(p);
+    return cats.includes(cSlug);
   });
 }
