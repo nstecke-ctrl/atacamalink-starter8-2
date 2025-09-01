@@ -6,6 +6,7 @@ import Nav from '@/components/Nav';
 import { loadCatalog } from '@/lib/catalog';
 import { ShoppingCart, Star } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import type { Product } from '@/lib/catalog';
 
 const ACCENT = '#E76F51';
 
@@ -85,8 +86,10 @@ function LocalProductCard({ p }: { p: any }) {
 }
 
 export default function Page() {
-  const [items, setItems] = useState<any[]>([]);
-  useEffect(() => { loadCatalog().then(setItems); }, []);
+  const [items, setItems] = useState<Product[]>([]);
+  useEffect(() => {
+  setItems(loadCatalog());    // ← ya no usamos .then
+}, []);
   const featured = useMemo(() => items.filter(isFeatured), [items]);
 
   return (
