@@ -1,34 +1,58 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import SearchBar from '@/components/SearchBar';
-import ProductGrid from '@/components/ProductGrid';
-import BackButton from '@/components/BackButton';
-import { byBrand, filterByCategory, loadCatalog, searchProducts } from '@/lib/catalog';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { loadCatalog } from '@/lib/catalog';
+import type { Product } from '@/lib/catalog';
 
-function Section({ children, className = '' }: any) {
-  return <section className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>{children}</section>;
+type AnyProduct = Product & { blurb?: string; image?: string; category?: string };
+
+function slugify(s: string) {
+  return String(s ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+function norm(s: unknown) {
+  return String(s ?? '').toLowerCase();
+}
+function categoriesOf(p: AnyProduct) {
+  if (Array.isArray(p.categories)) return p.categories.map(slugify);
+  if (p.category) return [slugify(p.category)];
+  return [];
+}
+function isCamera(p: AnyProduct) {
+  const b = norm(p.brand);
+  if (b.includes('hanwha')) return true;
+  const cats = categoriesOf(p);
+  return cats.some((c) => ['camera', 'camaras', 'cctv', 'lpr', 'ptz', 'bullet', 'dome'].includes(c));
 }
 
-export default function HanwhaCategory({ params }: { params: { cat: string } }) {
-  const categorySlug = decodeURIComponent(params.cat);
-  const [q, setQ] = useState('');
-  const [items, setItems] = useState<any[]>([]);
+export default function Page() {
+  const params = useParams<{ cat: string }>();
+  const catSlug = slugify(params?.cat);
+  const [items, setItems] = useState<AnyProduct[]>([]);
 
-  useEffect(() => { loadCatalog().then((all) => setItems(byBrand(all, 'hanwha-vision'))); }, []);
-  const inCat = useMemo(() => filterByCategory(items, categorySlug), [items, categorySlug]);
-  const filtered = useMemo(() => searchProducts(inCat, q), [inCat, q]);
+  useEffect(() => {
+    setItems(loadCatalog() as AnyProduct[]);
+  }, []);
+
+  const list = useMemo(() => {
+    return (items || [])
+      .filter((p) => isCamera(p) && norm(p.brand).includes('hanwha'))
+      .filter((p) => categoriesOf(p).includes(catSlug));
+  }, [items, catSlug]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <Section className="py-10 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl sm:text-4xl font-bold">Hanwha Vision — {categorySlug}</h1>
-          <BackButton />
-        </div>
-        <div><SearchBar q={q} setQ={setQ} /></div>
-        <ProductGrid items={filtered} />
-      </Section>
-    </div>
-  );
-}
+    <div className="max-w-6xl mx-auto px-4 py-10">
+      <h1 className="text-2xl font-bold mb-4">Hanwha — {params?.cat}</h1>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {list.map((p) => {
+          const slug = p.slug || slugify(`${p.brand}-${p.model}`);
+          return (
+            <div key={`${p.brand}-${p.model}`} className="rounded-xl border p-4 bg-white">
+              <div className="text-xs opacity-60">{p.category}</div>
+              <h3 className="font-semibold">{p.brand} {p.
