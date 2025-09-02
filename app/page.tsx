@@ -18,11 +18,18 @@ type AnyProduct = Product & {
   image?: string;
   category?: string;
 };
+type SectionProps = React.HTMLAttributes<HTMLElement> & {
+  children: React.ReactNode;
+  className?: string;
+};
 
-function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <section className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>{children}</section>;
+function Section({ children, className = '', ...rest }: SectionProps) {
+  return (
+    <section {...rest} className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>
+      {children}
+    </section>
+  );
 }
-
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 }
