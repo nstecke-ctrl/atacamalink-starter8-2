@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import { loadCatalog, isCamera } from '@/lib/catalog';
+import type { Product } from '@/lib/catalog';
 
 const allowed = new Set(['hanwha', 'hanwha vision', 'hanwha-vision']);
 
@@ -16,9 +17,9 @@ export default function CamarasBrandPage() {
   const brandParam = String(params?.brand || '').toLowerCase();
   const valid = allowed.has(brandParam);
 
-  const [items, setItems] = useState<any[]>([]);
-  const [q, setQ] = useState('');
-  useEffect(() => { loadCatalog().then(setItems); }, []);
+  const [items, setItems] = useState<Product[]>([]);
+  useEffect(() => {
+  setItems(loadCatalog());
 
   const cameras = useMemo(() => items.filter(isCamera), [items]);
   const byBrand = (p: any) => String(p.brand || '').toLowerCase().includes('hanwha');
