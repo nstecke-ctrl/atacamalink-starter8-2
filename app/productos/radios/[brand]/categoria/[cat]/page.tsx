@@ -1,74 +1,71 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import ProductCard from "@/components/ProductCard";
-import { byBrand, loadCatalog } from "@/lib/catalog";
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { loadCatalog } from '@/lib/catalog';
+import type { Product } from '@/lib/catalog';
 
-function Section({ children, className = "" }: any) {
-  return (
-    <section
-      className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${className}`}
-    >
-      {children}
-    </section>
-  );
+type AnyProduct = Product & { blurb?: string; image?: string; category?: string };
+
+function slugify(s: string) {
+  return String(s ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+function norm(s: unknown) {
+  return String(s ?? '').toLowerCase();
+}
+function categoriesOf(p: AnyProduct) {
+  if (Array.isArray(p.categories)) return p.categories.map(slugify);
+  if (p.category) return [slugify(p.category)];
+  return [];
+}
+function isRadio(p: AnyProduct) {
+  const b = norm(p.brand);
+  if (b.includes('motorola') || b.includes('hytera')) return true;
+  const cats = categoriesOf(p);
+  return cats.some((c) => ['radio', 'vhf', 'uhf', 'dmr', 'tetra'].includes(c));
 }
 
-/** Utility to title-case a string for display. */
-function titleCase(s: string) {
-  return s
-    .split(" ")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-export default function RadiosCategoryPage({
-  params,
-}: {
-  params: { brand: string; cat: string };
-}) {
-  const { brand, cat } = params;
-  const [items, setItems] = useState<any[]>([]);
-
-  const categorySlug = decodeURIComponent(cat).toLowerCase();
+export default function Page() {
+  const params = useParams<{ brand: string; cat: string }>();
+  const brandParam = norm(params?.brand);
+  const catSlug = slugify(params?.cat);
+  const [items, setItems] = useState<AnyProduct[]>([]);
 
   useEffect(() => {
-    loadCatalog().then((all) => {
-      const list = byBrand(all, brand).filter((p) => {
-        const c = (p.category || "").toLowerCase();
-        return c === categorySlug;
-      });
-      setItems(list);
-    });
-  }, [brand, categorySlug]);
+    setItems(loadCatalog() as AnyProduct[]);
+  }, []);
+
+  const list = useMemo(() => {
+    return (items || [])
+      .filter((p) => isRadio(p) && norm(p.brand).includes(brandParam))
+      .filter((p) => categoriesOf(p).includes(catSlug));
+  }, [items, brandParam, catSlug]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <Section className="py-10">
-        <h1 className="text-3xl sm:text-4xl font-bold">
-          {titleCase(categorySlug)}
-        </h1>
-        {/* Back link */}
-        <div className="mt-4">
-          <Link
-            href={`/productos/radios/${brand}`}
-            className="text-blue-600 text-sm hover:underline inline-flex items-center"
-          >
-            ← Volver a {brand}
-          </Link>
-        </div>
-
-        {items.length > 0 ? (
-          <div className="grid gap-4 mt-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((p) => (
-              <ProductCard key={`${p.brand}-${p.model}`} p={p} />
-            ))}
-          </div>
-        ) : (
-          <div className="mt-6 opacity-70">No hay productos en esta categoría.</div>
-        )}
-      </Section>
+    <div className="max-w-6xl mx-auto px-4 py-10">
+      <h1 className="text-2xl font-bold mb-4">Radios — {params?.brand} / {params?.cat}</h1>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {list.map((p) => {
+          const slug = p.slug || slugify(`${p.brand}-${p.model}`);
+          return (
+            <div key={`${p.brand}-${p.model}`} className="rounded-xl border p-4 bg-white">
+              <div className="text-xs opacity-60">{p.category}</div>
+              <h3 className="font-semibold">{p.brand} {p.model}</h3>
+              <p className="text-sm opacity-80 line-clamp-3">{p.blurb || p.description}</p>
+              <div className="mt-3">
+                <Link href={`/producto/${slug}`} className="text-sm underline text-teal-700">Ver detalle</Link>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {list.length === 0 && <p className="mt-6">Sin resultados.</p>}
     </div>
   );
 }
