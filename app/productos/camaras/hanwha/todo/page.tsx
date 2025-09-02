@@ -5,7 +5,12 @@ import Link from 'next/link';
 import { loadCatalog } from '@/lib/catalog';
 import type { Product } from '@/lib/catalog';
 
-type AnyProduct = Product & { blurb?: string; image?: string; category?: string };
+type AnyProduct = Product & {
+  blurb?: string;
+  image?: string;
+  category?: string;
+  categories?: string[]; // por si tu data lo trae así
+};
 
 function slugify(s: string) {
   return String(s ?? '')
@@ -63,13 +68,20 @@ export default function Page() {
           return (
             <div key={`${p.brand}-${p.model}`} className="rounded-xl border p-4 bg-white">
               <div className="text-xs opacity-60">{p.category}</div>
-              <h3 className="font-semibold">{p.brand} {p.model}</h3>
+              <h3 className="font-semibold">
+                {p.brand} {p.model}
+              </h3>
               <p className="text-sm opacity-80 line-clamp-3">{p.blurb || p.description}</p>
               <div className="mt-3">
-                <Link href={`/producto/${slug}`} className="text-sm underline text-teal-700">Ver detalle</Link>
+                <Link href={`/producto/${slug}`} className="text-sm underline text-teal-700">
+                  Ver detalle
+                </Link>
               </div>
             </div>
           );
         })}
       </div>
-      {list.length === 0 && <p className="m
+      {list.length === 0 && <p className="mt-6">Sin resultados.</p>}
+    </div>
+  );
+}
