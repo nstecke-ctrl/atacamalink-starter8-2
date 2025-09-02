@@ -18,11 +18,12 @@ type AnyProduct = Product & {
   image?: string;
   category?: string;
 };
+
+/** ACEPTA id y cualquier otro atributo HTML */
 type SectionProps = React.HTMLAttributes<HTMLElement> & {
   children: React.ReactNode;
   className?: string;
 };
-
 function Section({ children, className = '', ...rest }: SectionProps) {
   return (
     <section {...rest} className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>
@@ -30,6 +31,7 @@ function Section({ children, className = '', ...rest }: SectionProps) {
     </section>
   );
 }
+
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 }
@@ -71,7 +73,6 @@ function LocalProductCard({ p }: { p: AnyProduct }) {
   const priceStr = formatMoney(p.price, p.currency);
 
   const handleAdd = () => {
-    // Ajusta la forma del item si tu CartContext requiere otros campos
     addItem(
       {
         id,
@@ -144,12 +145,17 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Nav />
+
       <Section className="py-10">
         <div className="grid gap-6 lg:grid-cols-2 items-center">
           <div>
-            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs sm:text-sm">Proveedor de soluciones y equipamiento de alto nivel para minería</span>
+            <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs sm:text-sm">
+              Proveedor de soluciones y equipamiento de alto nivel para minería
+            </span>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mt-4">Tecnología confiable para entornos mineros exigentes</h1>
-            <p className="mt-3 text-gray-700">Radios, cámaras, antenas, control de acceso y networking industrial. Integración, asesoría y soporte local.</p>
+            <p className="mt-3 text-gray-700">
+              Radios, cámaras, antenas, control de acceso y networking industrial. Integración, asesoría y soporte local.
+            </p>
             <div className="mt-6 flex gap-3 flex-wrap">
               <Link href="/productos/camaras" className="rounded-2xl border px-4 py-2 text-sm">
                 Ver cámaras
